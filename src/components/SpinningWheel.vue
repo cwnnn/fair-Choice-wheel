@@ -1,10 +1,28 @@
 <template>
-  <div :class="['relative flex flex-col items-center justify-center', sizeClass]">
-    <canvas ref="canvasRef" :width="size" :height="size" class="rounded-full bg-white"></canvas>
-    <img src="./icons/images.png" alt="" class="absolute inset-10 m-auto w-12 h-16 rotate-320" />
+  <div
+    :style="{ width: size + 'px', height: size + 'px' }"
+    class="relative flex flex-col items-center justify-center"
+  >
+    <!-- canvas -->
+    <canvas
+      ref="canvasRef"
+      :width="size"
+      :height="size"
+      class="rounded-full bg-white"
+      :style="{ transform: `rotate(${rotationDeg}deg)` }"
+    ></canvas>
+
+    <!-- pointer(sadece görsel) -->
+    <img
+      src="./icons/images.png"
+      alt=""
+      class="absolute inset-13 inset-y-10 m-auto w-12 h-16 rotate-315"
+    />
+
+    <!-- Spin butonu -->
     <button
       class="absolute z-10 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inset-0 m-auto w-16 h-16 text-blue-900 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-      @click="spin"
+      @click="spin()"
       :disabled="isSpinning"
     >
       <span v-if="!isSpinning"
@@ -28,88 +46,23 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, onMounted, defineProps, defineEmits, computed } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 
 const props = defineProps<{
   options: string[];
-  size?: number; // default 500
+  size?: number;
 }>();
+
 const emit = defineEmits<{
   (e: "spin-end", selected: string): void;
 }>();
 
 const size = props.size ?? 500;
-const sizeClass = computed(() => `w-[${size}px] h-[${size}px]`);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
-const baseColors = [
-  "#d60056", // Pembemsi kırmızı (canlı)
-  "#ed4f24", // Turuncu (canlı)
-  "#fcc603", // Sarı (parlak)
-  "#61c42f", // Yeşil (canlı)
-  "#5682e8", // Açık mavi (canlı)
-  "#5e0afa", // Mavimsi mor (canlı)
-];
+// ---------- renkler ----------
+const baseColors = ["#d60056", "#ed4f24", "#fcc603", "#61c42f", "#5682e8", "#5e0afa"];
 
-function generateColors(count: number): string[] {
-  if (count <= baseColors.length) return baseColors.slice(0, count);
-
-  const hslColors = baseColors.map(hexToHSL);
-  const result: string[] = [];
-
-  for (let i = 0; i < count; i++) {
-    // position from 0 to (baseColors.length - 1)
-    const t = (i / (count - 1)) * (hslColors.length - 1);
-    const idx = Math.floor(t);
-    const frac = t - idx;
-
-    const c1 = hslColors[idx];
-    const c2 = hslColors[Math.min(idx + 1, hslColors.length - 1)];
-
-    // Hue'yi 0-360 wrap-around ile düzgün interpolate et
-    let dh = c2!.h - c1!.h;
-    if (dh > 180) dh -= 360;
-    else if (dh < -180) dh += 360;
-
-    result.push(
-      hslToHex({
-        h: (c1!.h + dh * frac + 360) % 360,
-        s: c1!.s + (c2!.s - c1!.s) * frac,
-        l: c1!.l + (c2!.l - c1!.l) * frac,
-      })
-    );
-  }
-
-  return result;
-}
-
-// Örnek hslToHex helper
-function hslToHex({ h, s, l }: { h: number; s: number; l: number }) {
-  s /= 100;
-  l /= 100;
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  let r = 0,
-    g = 0,
-    b = 0;
-
-  if (h < 60) [r, g, b] = [c, x, 0];
-  else if (h < 120) [r, g, b] = [x, c, 0];
-  else if (h < 180) [r, g, b] = [0, c, x];
-  else if (h < 240) [r, g, b] = [0, x, c];
-  else if (h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-
-  const toHex = (v: number) => {
-    const hex = Math.round((v + m) * 255).toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  };
-
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-// Helper: Convert hex to HSL
 function hexToHSL(hex: string) {
   let r = 0,
     g = 0,
@@ -143,127 +96,212 @@ function hexToHSL(hex: string) {
   return { h: h * 360, s: s * 100, l: l * 100 };
 }
 
+function hslToHex({ h, s, l }: { h: number; s: number; l: number }) {
+  s /= 100;
+  l /= 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+
+  const toHex = (v: number) => {
+    const hex = Math.round((v + m) * 255).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function generateColors(count: number) {
+  const base = baseColors.slice();
+  if (count <= base.length) return base.slice(0, count);
+  const hsl = base.map(hexToHSL);
+  const res: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = (i / (count - 1)) * (hsl.length - 1);
+    const idx = Math.floor(t);
+    const frac = t - idx;
+    const c1 = hsl[idx];
+    const c2 = hsl[Math.min(idx + 1, hsl.length - 1)];
+    let dh = c2!.h - c1!.h;
+    if (dh > 180) dh -= 360;
+    else if (dh < -180) dh += 360;
+    res.push(
+      hslToHex({
+        h: (c1!.h + dh * frac + 360) % 360,
+        s: c1!.s + (c2!.s - c1!.s) * frac,
+        l: c1!.l + (c2!.l - c1!.l) * frac,
+      })
+    );
+  }
+  return res;
+}
+
 const colors = computed(() => generateColors(props.options.length));
 
-// Animation state
-const isSpinning = ref(false);
-const rotation = ref(0); // Current rotation angle in radians
-const spinVelocity = ref(0); // Current angular velocity
-const targetAngle = ref(0); // Where to stop
-const selectedIdx = ref<number | null>(null);
-
+// ---------- canvas çizimi (statik) ----------
 function drawWheel() {
   const canvas = canvasRef.value;
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  ctx.clearRect(0, 0, size, size);
-  const center = size / 2;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const center = w / 2;
   const radius = center;
   const n = props.options.length;
+  if (n === 0) return;
+
   const anglePerSlice = (2 * Math.PI) / n;
-  // Draw slices
-  const gap = 0.004; // rad cinsinden beyaz boşluk
+  const startAngle = -Math.PI / 2 - anglePerSlice / 2;
+  const gap = 0.004;
+
   for (let i = 0; i < n; i++) {
+    const sliceStart = startAngle + i * anglePerSlice + gap / 2;
+    const sliceEnd = startAngle + (i + 1) * anglePerSlice - gap / 2;
+
+    // slice
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(center, center);
-    // Dilim açısını gap kadar küçült
-    ctx.arc(
-      center,
-      center,
-      radius,
-      rotation.value + i * anglePerSlice + gap / 2,
-      rotation.value + (i + 1) * anglePerSlice - gap / 2
-    );
+    ctx.arc(center, center, radius, sliceStart, sliceEnd);
     ctx.closePath();
     ctx.fillStyle = colors.value[i]!;
     ctx.fill();
     ctx.restore();
 
-    // Draw text
+    // text
     ctx.save();
     ctx.translate(center, center);
-    ctx.rotate(rotation.value + (i + 0.5) * anglePerSlice);
+    const textAngle = startAngle + (i + 0.5) * anglePerSlice;
+    ctx.rotate(textAngle);
     ctx.textAlign = "right";
-    ctx.font = `bold ${Math.floor(size / 18)}px sans-serif`;
+
+    const minFontSize = 10,
+      maxFontSize = 24,
+      idealSlices = 20;
+    const fontSize = Math.floor(
+      Math.max(minFontSize, Math.min(maxFontSize, maxFontSize * (idealSlices / n)))
+    );
+
+    ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.fillStyle = "#ffffff";
     ctx.fillText(props.options[i]!, radius - 20, 10);
     ctx.restore();
   }
 
-  // Draw center circle
+  // center circle
   ctx.save();
   ctx.beginPath();
-  ctx.arc(center, center, 40, 0, 2 * Math.PI);
+  ctx.arc(center, center, 40, 0, Math.PI * 2);
   ctx.fillStyle = "#fff";
-
   ctx.shadowBlur = 8;
   ctx.fill();
   ctx.restore();
 }
-onMounted(() => {
-  drawWheel();
-  animate(); // Idle animasyon sürekli çalışacak
-});
 
-const idleVelocity = 0.004; // Çok yavaş dönen hız
+// ---------- dönüş state / animasyon ----------
+const rotationDeg = ref(0);
+const isSpinning = ref(false);
 
-// Animation loop
-let animFrame: number | null = null;
-function animate() {
+const animState = {
+  startDeg: 0,
+  endDeg: 0,
+  startTime: 0,
+  duration: 0,
+};
+
+let rafId: number | null = null;
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function normalizeDeg(deg: number) {
+  let d = deg % 360;
+  if (d < 0) d += 360;
+  return d;
+}
+
+function animationLoop() {
+  const now = performance.now();
+
   if (isSpinning.value) {
-    // Spin sırasında normal hız ve frenleme
-    rotation.value += spinVelocity.value;
-    spinVelocity.value *= 0.985; // Friction
-    const diff =
-      (((rotation.value - targetAngle.value) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-    if (spinVelocity.value < 0.01 && diff < 0.05) {
-      rotation.value = targetAngle.value;
+    const elapsed = now - animState.startTime;
+    const progress = Math.min(1, elapsed / animState.duration);
+    const eased = easeOutCubic(progress);
+
+    rotationDeg.value = animState.startDeg + (animState.endDeg - animState.startDeg) * eased;
+
+    if (progress >= 1) {
       isSpinning.value = false;
+      rotationDeg.value = normalizeDeg(rotationDeg.value);
+
       const n = props.options.length;
-      const anglePerSlice = (2 * Math.PI) / n;
-      const idx = (n - (Math.floor(rotation.value / anglePerSlice) % n)) % n;
-      selectedIdx.value = idx;
-      emit("spin-end", props.options[idx]!);
+      if (n > 0) {
+        const anglePerSliceDeg = 360 / n;
+        const rawIndex = -(rotationDeg.value + 45) / anglePerSliceDeg;
+        const rounded = Math.round(rawIndex);
+        const idx = ((rounded % n) + n) % n;
+        const selected = props.options[idx]!;
+        emit("spin-end", selected);
+      }
     }
   } else {
-    // Idle rotation: yavaş dön
-    rotation.value += idleVelocity;
+    // idle slow rotation
+    rotationDeg.value = normalizeDeg(rotationDeg.value + 0);
   }
 
-  drawWheel();
-  animFrame = requestAnimationFrame(animate);
+  rafId = requestAnimationFrame(animationLoop);
 }
 
 function spin() {
-  if (isSpinning.value) return;
-  isSpinning.value = true;
-  selectedIdx.value = null;
-  // Randomly pick a target slice
-  const n = props.options.length;
-  const anglePerSlice = (2 * Math.PI) / n;
-  const targetIdx = Math.floor(Math.random() * n);
-  // The pointer is at angle 0, so target angle is:
-  // (n - targetIdx) * anglePerSlice + random offset within slice
-  const offset = Math.random() * anglePerSlice;
-  targetAngle.value = ((n - targetIdx) * anglePerSlice + offset) % (2 * Math.PI);
-  // Start with a few spins
-  const spins = 5 + Math.random() * 2;
-  rotation.value = rotation.value % (2 * Math.PI);
-  targetAngle.value += 2 * Math.PI * spins;
-  spinVelocity.value = 0.35 + Math.random() * 0.1;
-  if (animFrame !== null) {
-    cancelAnimationFrame(animFrame);
-    animFrame = null; // optional, temizlemek için
-  }
+  if (isSpinning.value || props.options.length === 0) return;
 
-  animFrame = requestAnimationFrame(animate);
+  isSpinning.value = true;
+
+  const extraSpins = 4 + Math.random() * 2;
+  console.log("extraSpins:", Math.random());
+  const extraDeg = Math.floor(extraSpins) * 360 + Math.random() * 360;
+
+  animState.startDeg = rotationDeg.value;
+  animState.endDeg = rotationDeg.value + extraDeg;
+  animState.startTime = performance.now();
+  animState.duration = 4200;
 }
 
-onMounted(drawWheel);
-watch(() => props.options, drawWheel, { deep: true });
-watch(rotation, drawWheel);
+// ---------- lifecycle ----------
+onMounted(() => {
+  drawWheel();
+  if (rafId === null) {
+    rafId = requestAnimationFrame(animationLoop);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+  }
+});
+
+watch(
+  () => props.options,
+  () => {
+    drawWheel();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped></style>

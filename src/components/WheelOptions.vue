@@ -116,13 +116,25 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 const inputText = ref("");
 const bulkText = ref("");
 const bulkMode = ref(false);
 
 const items = ref(["Seçenek 1", "Seçenek 2", "Seçenek 3", "Seçenek 4", "Seçenek 5", "Seçenek 6"]);
+
+const emit = defineEmits<{
+  (e: "update:options", value: string[]): void;
+}>();
+
+watch(
+  items,
+  (newItems) => {
+    emit("update:options", newItems);
+  },
+  { deep: true }
+);
 
 function addItem() {
   if (!inputText.value.trim()) return;
