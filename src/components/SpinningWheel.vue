@@ -50,6 +50,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 
 const props = defineProps<{
   options: string[];
+  weights?: number[];
   size?: number;
 }>();
 
@@ -60,7 +61,6 @@ const emit = defineEmits<{
 const size = props.size ?? 500;
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
-// ---------- renkler ----------
 const baseColors = ["#d60056", "#ed4f24", "#fcc603", "#61c42f", "#5682e8", "#5e0afa"];
 
 function hexToHSL(hex: string) {
@@ -260,10 +260,35 @@ function animationLoop() {
     }
   } else {
     // idle slow rotation
-    rotationDeg.value = normalizeDeg(rotationDeg.value + 0);
+    rotationDeg.value = normalizeDeg(rotationDeg.value + 0.3);
   }
 
   rafId = requestAnimationFrame(animationLoop);
+}
+
+const normalizedWeights = computed(() => {
+  const n = props.options.length;
+
+  // hiç weight gelmemişse eşit dağıt
+  if (!props.weights || props.weights.length !== n) {
+    return Array(n).fill(1 / n);
+  }
+
+  const total = props.weights.reduce((a, b) => a + b, 0);
+  return props.weights.map((w) => w / total);
+});
+function pickIndexByWeight() {
+  const weights = normalizedWeights.value;
+  console.log("Normalized Weights:", weights);
+  const r = Math.random();
+  let sum = 0;
+
+  for (let i = 0; i < weights.length; i++) {
+    sum += weights[i];
+    if (r <= sum) return i;
+  }
+
+  return weights.length - 1;
 }
 
 function spin() {
@@ -271,12 +296,21 @@ function spin() {
 
   isSpinning.value = true;
 
-  const extraSpins = 4 + Math.random() * 2;
-  console.log("extraSpins:", Math.random());
-  const extraDeg = Math.floor(extraSpins) * 360 + Math.random() * 360;
+  const n = props.options.length;
+  const anglePerSliceDeg = 360 / n;
+
+  const targetIndex = pickIndexByWeight();
+  console.log("Seçilen Index:", targetIndex);
+
+  const maxOffset = anglePerSliceDeg / 2 - 1;
+  const wobble = (Math.random() * 2 - 1) * maxOffset;
+  const targetDeg = -(targetIndex * anglePerSliceDeg) - 45 + wobble;
+
+  const extraSpins = 4 + Math.floor(Math.random() * 3);
+  const totalRotation = extraSpins * 360 + targetDeg;
 
   animState.startDeg = rotationDeg.value;
-  animState.endDeg = rotationDeg.value + extraDeg;
+  animState.endDeg = totalRotation;
   animState.startTime = performance.now();
   animState.duration = 4200;
 }
