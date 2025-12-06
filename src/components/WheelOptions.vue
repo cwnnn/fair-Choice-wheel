@@ -22,7 +22,7 @@
     </div>
 
     <!-- Seçenek sayısı -->
-    <div class="m-3 p-3 text-center text-gray-700">Seçenek sayısı: {{ items.length }}</div>
+    <div class="m-3 p-3 text-center text-gray-700">Seçenek sayısı: {{ options.length }}</div>
 
     <!-- Toplu seçenek gir switch -->
     <div class="m-3 p-3 flex justify-between items-center">
@@ -31,12 +31,11 @@
       <label class="relative inline-flex items-center cursor-pointer">
         <input type="checkbox" class="sr-only peer" v-model="bulkMode" />
         <div
-          class="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-500 transition-all"
+          class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-all"
         ></div>
         <span
           class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow transition-all peer-checked:translate-x-6"
-        >
-        </span>
+        ></span>
       </label>
     </div>
 
@@ -50,7 +49,7 @@
       />
 
       <button
-        @click="addItem()"
+        @click="addItem"
         class="px-4 py-2 border rounded-lg border-gray-500 rounded-l-none hover:bg-gray-100"
       >
         Ekle
@@ -66,16 +65,16 @@
         class="w-full border rounded-xl p-3"
       ></textarea>
 
-      <button @click="addBulk()" class="mt-3 px-4 py-2 border rounded-lg hover:bg-gray-100 w-full">
+      <button @click="addBulk" class="mt-3 px-4 py-2 border rounded-lg hover:bg-gray-100 w-full">
         Toplu Ekle
       </button>
     </div>
 
     <!-- Liste -->
-    <div class="m-3 p-3 bg-white rounded-xl shadow">
+    <div class="m-3 p-3 bg-white rounded-xl shadow overflow-y-auto" style="max-height: 35vh">
       <ul>
         <li
-          v-for="(item, index) in items"
+          v-for="(item, index) in options"
           :key="index"
           :class="[
             'flex justify-between items-center px-3 py-1 ',
@@ -116,29 +115,24 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from "vue";
+import { ref } from "vue";
+
+const props = defineProps<{
+  options: string[];
+}>();
+
+const emit = defineEmits<{
+  (event: "update:options", value: string[]): void;
+}>();
 
 const inputText = ref("");
 const bulkText = ref("");
 const bulkMode = ref(false);
 
-const items = ref(["Seçenek 1", "Seçenek 2", "Seçenek 3", "Seçenek 4", "Seçenek 5", "Seçenek 6"]);
-
-const emit = defineEmits<{
-  (e: "update:options", value: string[]): void;
-}>();
-
-watch(
-  items,
-  (newItems) => {
-    emit("update:options", newItems);
-  },
-  { deep: true }
-);
-
 function addItem() {
   if (!inputText.value.trim()) return;
-  items.value.push(inputText.value.trim());
+  const updated = [...props.options, inputText.value.trim()];
+  emit("update:options", updated);
   inputText.value = "";
 }
 
@@ -148,11 +142,13 @@ function addBulk() {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  items.value.push(...lines);
+  const updated = [...props.options, ...lines];
+  emit("update:options", updated);
   bulkText.value = "";
 }
 
 function removeItem(index: number) {
-  items.value.splice(index, 1);
+  const updated = props.options.filter((_, i) => i !== index);
+  emit("update:options", updated);
 }
 </script>
