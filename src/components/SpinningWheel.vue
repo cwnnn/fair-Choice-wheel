@@ -47,12 +47,20 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import Fuse from "fuse.js";
 
-const props = defineProps<{
-  options: string[];
-  weights?: number[];
-  size?: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    options: string[];
+    weights?: number[];
+    size?: number;
+    source?: string[];
+    lucky?: boolean;
+  }>(),
+  {
+    lucky: true,
+  }
+);
 
 const emit = defineEmits<{
   (e: "spin-end", selected: string): void;
@@ -265,9 +273,61 @@ function animationLoop() {
 
   rafId = requestAnimationFrame(animationLoop);
 }
+const autoWeights = computed(() => {
+  if (!props.source || props.source.length === 0) {
+    return null;
+  }
+
+  console.log("AUTO WEIGHTS ÇALIŞTI, SOURCE:", props.source);
+
+  const fuse = new Fuse(props.options, {
+    threshold: 0.4,
+    includeScore: true,
+  });
+  const weights: number[] = [];
+
+  const data = ref<Record<string, number>>({});
+
+  for (let index = 0; index < props.source.length; index++) {
+    const element = props.source[index]!;
+    const search = fuse.search(element);
+    console.log("Arama Sonuçları for element", element, ":", search);
+    if (search.length > 0) {
+      let raw = search[0]!.score;
+
+      if (raw! < 1e-10) raw = 0;
+
+      const percent = Math.round((1 - raw!) * 100);
+
+      console.log(`Element: ${element}, Score: ${raw}, Percent: ${percent}%`);
+
+      data.value[search[0]!.item] = percent!;
+    }
+  }
+  console.log("Hesaplanan data:", data.value);
+
+  for (let i = 0; i < props.options.length; i++) {
+    const opt = props.options[i]!;
+    const val = data.value[opt] ?? null;
+
+    if (props.lucky) {
+      weights[i] = val ?? 0;
+    } else {
+      weights[i] = val !== null ? 100 - val : 100;
+    }
+  }
+
+  console.log("Auto hesaplanan weights:", weights);
+  return weights;
+});
 
 const normalizedWeights = computed(() => {
   const n = props.options.length;
+
+  if (autoWeights.value) {
+    const total = autoWeights.value.reduce((a, b) => a + b, 0);
+    return autoWeights.value.map((w) => (total === 0 ? 1 / n : w / total));
+  }
 
   // hiç weight gelmemişse eşit dağıt
   if (!props.weights || props.weights.length !== n) {
@@ -277,6 +337,7 @@ const normalizedWeights = computed(() => {
   const total = props.weights.reduce((a, b) => a + b, 0);
   return props.weights.map((w) => w / total);
 });
+
 function pickIndexByWeight() {
   const weights = normalizedWeights.value;
   console.log("Normalized Weights:", weights);
