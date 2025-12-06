@@ -16,7 +16,7 @@
     <img
       src="./icons/images.png"
       alt=""
-      class="absolute inset-13 inset-y-10 m-auto w-12 h-16 rotate-315"
+      class="absolute inset-5 inset-y-5 lg:inset-13 lg:inset-y-10 m-auto w-12 h-16 rotate-315"
     />
 
     <!-- Spin butonu -->
