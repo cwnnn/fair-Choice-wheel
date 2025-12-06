@@ -14,9 +14,9 @@ defineOptions({
 
       <!-- Menü -->
       <ul class="menu">
-        <li><a href="/ne-yesem">Ne Yesem?</a></li>
-        <li><a href="/sayi-carki">Sayı Çarkı</a></li>
-        <li><a href="/tum-carklar">Tüm Çarklar</a></li>
+        <li><a href="/">Ne Yesem?</a></li>
+        <li><a href="/">Sayı Çarkı</a></li>
+        <li><a href="/">Tüm Çarklar</a></li>
       </ul>
     </nav>
   </header>
