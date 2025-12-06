@@ -15,14 +15,3 @@ a,
   transition: 0.3s;
   padding: 3px;
 }
-.row {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-@media (min-width: 1024px) {
-  #app {
-    padding: 1rem;
-  }
-}

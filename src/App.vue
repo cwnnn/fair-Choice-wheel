@@ -10,7 +10,7 @@ import Header from "./components/Header.vue";
       <router-view />
     </main>
   </div>
-  <section class="w-full max-w-5xl mx-auto pt-50 px-4 flex flex-col gap-28">
+  <section class="w-full mx-auto pt-50 px-10 flex flex-col gap-28">
     <h1
       class="text-4xl md:text-5xl text-center mb-6 bg-gradient-to-r from-blue-600 to-black bg-clip-text text-transparent"
       style="font-weight: bold"
@@ -70,8 +70,6 @@ import Header from "./components/Header.vue";
       <img src="/img3.png" class="w-44 h-44 md:w-52 md:h-52 object-contain flex-1" />
     </div>
   </section>
-
-  <div class="w-full h-[2px] bg-gray-200 my-20"></div>
 </template>
 
 <style scoped></style>
