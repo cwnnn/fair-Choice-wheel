@@ -23,8 +23,6 @@ const showWinner = ref(false);
 const selectedWinner = ref<string | null>(null);
 
 function onSpinEnd(selected: string) {
-  console.log("Çark sonucu:", selected);
-
   selectedWinner.value = selected;
   showWinner.value = true;
 }

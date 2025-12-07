@@ -278,8 +278,6 @@ const autoWeights = computed(() => {
     return null;
   }
 
-  console.log("AUTO WEIGHTS ÇALIŞTI, SOURCE:", props.source);
-
   const fuse = new Fuse(props.options, {
     threshold: 0.4,
     includeScore: true,
@@ -291,7 +289,7 @@ const autoWeights = computed(() => {
   for (let index = 0; index < props.source.length; index++) {
     const element = props.source[index]!;
     const search = fuse.search(element);
-    console.log("Arama Sonuçları for element", element, ":", search);
+
     if (search.length > 0) {
       let raw = search[0]!.score;
 
@@ -299,12 +297,9 @@ const autoWeights = computed(() => {
 
       const percent = Math.round((1 - raw!) * 100);
 
-      console.log(`Element: ${element}, Score: ${raw}, Percent: ${percent}%`);
-
       data.value[search[0]!.item] = percent!;
     }
   }
-  console.log("Hesaplanan data:", data.value);
 
   for (let i = 0; i < props.options.length; i++) {
     const opt = props.options[i]!;
@@ -317,7 +312,6 @@ const autoWeights = computed(() => {
     }
   }
 
-  console.log("Auto hesaplanan weights:", weights);
   return weights;
 });
 
@@ -340,7 +334,7 @@ const normalizedWeights = computed(() => {
 
 function pickIndexByWeight() {
   const weights = normalizedWeights.value;
-  console.log("Normalized Weights:", weights);
+
   const r = Math.random();
   let sum = 0;
 
@@ -361,7 +355,6 @@ function spin() {
   const anglePerSliceDeg = 360 / n;
 
   const targetIndex = pickIndexByWeight();
-  console.log("Seçilen Index:", targetIndex);
 
   const maxOffset = anglePerSliceDeg / 2 - 1;
   const wobble = (Math.random() * 2 - 1) * maxOffset;

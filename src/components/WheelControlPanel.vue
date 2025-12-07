@@ -29,7 +29,7 @@
             :type="mode === 'weights' ? 'primary' : 'default'"
             @click="mode = 'weights'"
           >
-            Weight Mode
+            Ağırlık Modu
           </n-button>
 
           <n-button
@@ -38,17 +38,21 @@
             :type="mode === 'source' ? 'primary' : 'default'"
             @click="mode = 'source'"
           >
-            Source Mode
+            Kelime Arama Modu
           </n-button>
         </n-button-group>
       </n-space>
 
       <div v-if="mode === 'weights'" class="space-y-4">
+        <p class="py-4">
+          Yüzdelik değil, ağrılıkların göredir(eşit iki sayı eşit ihtimal).
+          <span class="text-red-500">Seçenekler eklendikten sonra kullanılmalıdır.</span>
+        </p>
         <div v-for="(opt, i) in options" :key="i">
           <label class="text-black font-medium text-lg">{{ opt }}</label>
 
           <n-space vertical class="pb-4">
-            <span class="text-sm text-gray-600"> Weight ({{ localWeights[i] }}) </span>
+            <span class="text-sm text-gray-600"> Ağırlık ({{ localWeights[i] }}) </span>
 
             <n-slider v-model:value="localWeights[i]" :min="0" :max="100" :step="1" />
 
@@ -65,11 +69,15 @@
 
       <!-- SOURCE MODE -->
       <div v-else class="space-y-4 py-4">
-        <div class="flex flex-1 justify-between p-4">
-          <label class="font-medium">Kelime / Arama Inputu</label>
+        <p class="p-2">
+          Aranan kelime seçeneklerde varsa çalışır.(şans açıksa 100%, kapalıysa %0) birden fazla
+          arama yapılabilir, birden fazla seçenek bulursa ağrılık modu gibi çalışır.
+        </p>
+        <div class="flex flex-1 justify-between py-4">
+          <label class="font-medium">Kelime / Arama </label>
           <label class="flex items-center gap-2 mt-2">
             <n-switch v-model:value="localLucky" />
-            Lucky Aktif
+            Şans Aktif
           </label>
         </div>
 
