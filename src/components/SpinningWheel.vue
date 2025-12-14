@@ -8,24 +8,26 @@
       ref="canvasRef"
       :width="size"
       :height="size"
-      class="rounded-full bg-white"
+      class="rounded-full bg-gray-300"
       :style="{ transform: `rotate(${rotationDeg}deg)` }"
     ></canvas>
 
     <!-- pointer(sadece görsel) -->
     <img
+      ref="pointerRef"
       src="./icons/images.png"
       alt=""
-      class="absolute inset-5 inset-y-5 lg:inset-13 lg:inset-y-10 m-auto w-12 h-16 rotate-315"
+      class="absolute inset-5 inset-y-5 lg:inset-13 lg:inset-y-10 m-auto w-12 h-16"
+      :style="{ transform: `rotate(${pointerDeg}deg)` }"
     />
 
     <!-- Spin butonu -->
     <button
       class="absolute z-10 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inset-0 m-auto w-16 h-16 text-blue-900 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
       @click="spin()"
-      :disabled="isSpinning"
+      :disabled="isSpinning || pointerDeg !== 315"
     >
-      <span v-if="!isSpinning"
+      <span v-if="!isSpinning && pointerDeg === 315"
         ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-10 h-10">
           <path
             fill="currentColor"
@@ -70,6 +72,9 @@ const size = props.size ?? 500;
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
 const baseColors = ["#d60056", "#ed4f24", "#fcc603", "#61c42f", "#5682e8", "#5e0afa"];
+
+const pointerRef = ref<HTMLImageElement | null>(null); // Gösterge oku için ref
+const pointerDeg = ref(315); // başlangıç açısı
 
 function hexToHSL(hex: string) {
   let r = 0,
@@ -268,7 +273,9 @@ function animationLoop() {
     }
   } else {
     // idle slow rotation
-    rotationDeg.value = normalizeDeg(rotationDeg.value + 0.3);
+    if (!isSpinning.value) {
+      rotationDeg.value = normalizeDeg(rotationDeg.value + 0.3);
+    }
   }
 
   rafId = requestAnimationFrame(animationLoop);
@@ -349,6 +356,22 @@ function pickIndexByWeight() {
 function spin() {
   if (isSpinning.value || props.options.length === 0) return;
 
+  // **Şaka koşulu kontrolü**
+  const weightsArray: number[] =
+    props.weights && props.weights.length > 0
+      ? props.weights
+      : autoWeights.value && autoWeights.value.length > 0
+      ? autoWeights.value
+      : [];
+
+  const allZero = weightsArray.length > 0 && weightsArray.every((w) => w === 0);
+
+  const noMatchFromSource = props.source?.length && autoWeights.value?.every((w) => w === 0);
+
+  if (allZero || noMatchFromSource) {
+    triggerJokeMode();
+    return;
+  }
   isSpinning.value = true;
 
   const n = props.options.length;
@@ -367,6 +390,77 @@ function spin() {
   animState.endDeg = totalRotation;
   animState.startTime = performance.now();
   animState.duration = 4200;
+}
+
+function triggerJokeMode() {
+  // Tek opsiyon ve %0 şans -> Şaka moduna gir
+  const jokeModes: Array<"flip" | "endless" | "uzunAdam"> = ["flip", "endless", "uzunAdam"];
+  const chosenJoke = jokeModes[Math.floor(Math.random() * jokeModes.length)];
+
+  console.log(chosenJoke);
+
+  if (chosenJoke === "endless") {
+    // Şaka 1: Sonsuz Döndürme
+    isSpinning.value = true;
+    const extraSpins = 1000;
+    const targetIndex = 0; // Tek opsiyon var aslında (burada önemli değil, dönmeye devam edecek)
+    const anglePerSliceDeg = 360 / props.options.length; // 360 derece
+    const maxOffset = anglePerSliceDeg / 2 - 1;
+    const wobble = (Math.random() * 2 - 1) * maxOffset;
+    const targetDeg = -(targetIndex * anglePerSliceDeg) - 45 + wobble;
+    const totalRotation = extraSpins * 360 + targetDeg;
+    animState.startDeg = rotationDeg.value;
+    animState.endDeg = animState.startDeg + totalRotation;
+    animState.startTime = performance.now();
+    // Animasyonu çok uzun tut (örn: ~17 dakika)
+    animState.duration = 4200 * (extraSpins / 6);
+    // *Not:* Bu animasyon çok uzun sürdüğü için spin-end emit edilmeden kullanıcı muhtemelen pes edecektir.
+  } else if (chosenJoke === "flip") {
+    const startDeg = pointerDeg.value;
+    const endDeg = 135; // 315 - 180
+
+    const spins = 3 + Math.floor(Math.random() * 2); // 3–4 tur
+    const totalRotation = spins * 360 + (endDeg - (startDeg % 360));
+
+    if (pointerRef.value) {
+      pointerRef.value.style.transition = "transform 1.3s cubic-bezier(.17,.67,.38,1)";
+    }
+
+    pointerDeg.value = startDeg + totalRotation;
+
+    const sillyWords = ["Patates", "Salatalık", "Bardak"];
+    const randomWord = sillyWords[Math.floor(Math.random() * sillyWords.length)];
+
+    setTimeout(() => {
+      emit("spin-end", randomWord!);
+    }, 1300);
+    setTimeout(() => {
+      if (pointerRef.value) {
+        pointerRef.value.style.transition = "transform 0.4s ease-in-out";
+      }
+      pointerDeg.value = 315;
+    }, 2500);
+  } else if (chosenJoke === "uzunAdam") {
+    // uzun adam varsa ekleme
+    if (!props.options.includes("Uzun Adam")) {
+      props.options.push!("Uzun Adam");
+    }
+
+    isSpinning.value = true;
+    const n = props.options.length;
+    const anglePerSliceDeg = 360 / n;
+
+    const targetIndex = props.options.indexOf("Uzun Adam");
+    const maxOffset = anglePerSliceDeg / 2 - 1;
+    const wobble = (Math.random() * 2 - 1) * maxOffset;
+    const targetDeg = -(targetIndex * anglePerSliceDeg) - 45 + wobble;
+    const extraSpins = 4 + Math.floor(Math.random() * 3);
+    const totalRotation = extraSpins * 360 + targetDeg;
+    animState.startDeg = rotationDeg.value;
+    animState.endDeg = totalRotation;
+    animState.startTime = performance.now();
+    animState.duration = 4200;
+  }
 }
 
 // ---------- lifecycle ----------

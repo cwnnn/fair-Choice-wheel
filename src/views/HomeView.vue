@@ -40,7 +40,7 @@ const wheelSize = computed(() => {
       <WheelOptions v-model:options="wheelOptions" />
     </div>
 
-    <div class="flex justify-center items-start w-full">
+    <div class="flex justify-center items-start w-full overflow-hidden">
       <SpinningWheel
         :options="wheelOptions"
         :weights="weights"

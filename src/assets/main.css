@@ -15,3 +15,9 @@ a,
   transition: 0.3s;
   padding: 3px;
 }
+* {
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Edge */
+  user-select: none; /* Standard */
+}
